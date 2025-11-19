@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Study Helper Bot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+   <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* Updated: Pink background gradient to Gray */
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, black);
+        background-attachment: fixed;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 900px;
+        background: white;
+        border-radius: 20px;
+        /* Updated: Pink shadow to Gray */
+        box-shadow: 0 10px 40px rgba(96, 125, 139, 0.3);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 90vh;
+        max-height: 800px;
+    }
+
+    .header {
+        /* Updated: Pink gradient to Gray */
+        background: linear-gradient(135deg, #607d8b, #455a64);
+        padding: 25px;
+        color: white;
+        text-align: center;
+    }
+
+    .header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+
+    .header p {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    .upload-section {
+        padding: 20px;
+        /* Updated: Light pink background to light gray */
+        background: #f5f5f5;
+        /* Updated: Pink border to gray */
+        border-bottom: 2px solid #cfd8dc;
+    }
+
+    .upload-box {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        flex: 1;
+    }
+
+    input[type="file"] {
+        width: 100%;
+        padding: 12px;
+        /* Updated: Pink dashed border to gray */
+        border: 2px dashed #607d8b;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        background: white;
+    }
+
+    input[type="file"]::file-selector-button {
+        /* Updated: Pink button to gray */
+        background: #607d8b;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    .upload-btn {
+        padding: 12px 25px;
+        /* Updated: Pink button to gray */
+        background: #455a64;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .upload-btn:hover {
+        /* Updated: Darker pink on hover to darker gray */
+        background: #37474f;
+        transform: translateY(-2px);
+    }
+
+    .upload-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .status {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .status.success {
+        background: #d4f4dd;
+        color: #2d6a3e;
+    }
+
+    .status.error {
+        background: #ffe0e0;
+        color: #c41e3a;
+    }
+
+    .chat-area {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        /* Updated: Pink patterned background to gray */
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23fcfcfc" width="100" height="100"/><circle cx="10" cy="10" r="2" fill="%23b0bec5" opacity="0.3"/><circle cx="50" cy="50" r="2" fill="%23b0bec5" opacity="0.3"/><circle cx="90" cy="90" r="2" fill="%23b0bec5" opacity="0.3"/></svg>');
+    }
+
+    .chat-message {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .user-message {
+        flex-direction: row-reverse;
+    }
+
+    .user-message .message-avatar {
+        /* Updated: Pink gradient to Gray */
+        background: linear-gradient(135deg, #607d8b, #455a64);
+    }
+
+    .bot-message .message-avatar {
+        /* The existing purple/blue bot color is preserved as it contrasts nicely with the new grays. */
+        background: linear-gradient(135deg, #9370db, #8a2be2);
+    }
+
+    .message-content {
+        max-width: 70%;
+        padding: 15px 20px;
+        border-radius: 15px;
+        line-height: 1.6;
+    }
+
+    .user-message .message-content {
+        /* Updated: Pink gradient to Gray */
+        background: linear-gradient(135deg, #607d8b, #455a64);
+        color: white;
+        border-bottom-right-radius: 5px;
+    }
+
+    .bot-message .message-content {
+        background: white;
+        color: #333;
+        /* Updated: Light pink border to light gray */
+        border: 1px solid #cfd8dc;
+        border-bottom-left-radius: 5px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .input-section {
+        padding: 20px;
+        background: white;
+        /* Updated: Pink border to gray */
+        border-top: 2px solid #cfd8dc;
+    }
+
+    .quick-questions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .quick-btn {
+        /* Updated: Light pink background to light gray */
+        background: #eceff1;
+        /* Updated: Pink border to gray */
+        border: 1px solid #607d8b;
+        border-radius: 20px;
+        padding: 8px 15px;
+        cursor: pointer;
+        font-size: 13px;
+        /* Updated: Pink text to gray */
+        color: #455a64;
+        transition: all 0.3s;
+    }
+
+    .quick-btn:hover {
+        /* Updated: Pink hover to gray */
+        background: #607d8b;
+        color: white;
+    }
+
+    .input-box {
+        display: flex;
+        gap: 10px;
+    }
+
+    input[type="text"] {
+        flex: 1;
+        padding: 12px 20px;
+        /* Updated: Pink border to gray */
+        border: 2px solid #cfd8dc;
+        border-radius: 25px;
+        font-size: 15px;
+        outline: none;
+    }
+
+    input[type="text"]:focus {
+        /* Updated: Pink focus border to gray */
+        border-color: #607d8b;
+    }
+
+    .send-btn {
+        padding: 12px 30px;
+        /* Updated: Pink gradient to Gray */
+        background: linear-gradient(135deg, #607d8b, #455a64);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .send-btn:hover {
+        transform: scale(1.05);
+        /* Updated: Pink shadow to gray */
+        box-shadow: 0 5px 15px rgba(69, 90, 100, 0.4);
+    }
+
+    .send-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .typing-indicator {
+        display: flex;
+        gap: 5px;
+        padding: 10px;
+    }
+
+    .typing-dot {
+        width: 8px;
+        height: 8px;
+        /* Updated: Pink dots to gray */
+        background: #607d8b;
+        border-radius: 50%;
+        animation: typing 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-10px); }
+    }
+
+    .welcome-message {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+
+    .welcome-message h2 {
+        /* Updated: Pink welcome text to gray */
+        color: #455a64;
+        margin-bottom: 15px;
+    }
+
+    .welcome-message p {
+        margin-bottom: 10px;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 PDF Study Helper Bot</h1>
+            <p>Upload your PDF and ask questions to get instant answers!</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-box">
+                <div class="file-input-wrapper">
+                    <input type="file" id="pdfFile" accept=".pdf">
+                </div>
+                <button class="upload-btn" id="uploadBtn">Upload & Process</button>
+            </div>
+            <div id="status"></div>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="welcome-message">
+                <h2>Welcome to PDF Study Helper! 🎓</h2>
+                <p>Upload a PDF document to get started.</p>
+                <p>Once uploaded, you can ask questions like:</p>
+                <p><strong>"What is the topic of this PDF?"</strong></p>
+                <p><strong>"Explain the abstract"</strong></p>
+                <p><strong>"Key points from conclusion"</strong></p>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="quick-questions" id="quickQuestions" style="display: none;">
+                <button class="quick-btn" data-question="What is the topic of this PDF?">📖 Topic</button>
+                <button class="quick-btn" data-question="Explain the abstract">📝 Abstract</button>
+                <button class="quick-btn" data-question="Key points from conclusion">🎯 Conclusion</button>
+                <button class="quick-btn" data-question="Summarize the introduction">💡 Introduction</button>
+                <button class="quick-btn" data-question="What are the main findings?">🔍 Findings</button>
+            </div>
+            <div class="input-box">
+                <input type="text" id="questionInput" placeholder="Ask a question about your PDF..." disabled>
+                <button class="send-btn" id="sendBtn" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let pdfText = '';
+        let pdfData = {};
+
+        const chatArea = document.getElementById('chatArea');
+        const questionInput = document.getElementById('questionInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const status = document.getElementById('status');
+        const quickQuestions = document.getElementById('quickQuestions');
+
+        uploadBtn.addEventListener('click', async () => {
+            const fileInput = document.getElementById('pdfFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showStatus('Please select a PDF file first!', 'error');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Processing...';
+            showStatus('Extracting text from PDF...', 'info');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                
+                pdfText = '';
+                pdfData = {
+                    title: file.name,
+                    pages: pdf.numPages,
+                    sections: {}
+                };
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    pdfText += pageText + '\n\n';
+                }
+
+                analyzePdfStructure();
+                
+                showStatus(`✅ PDF loaded successfully! (${pdf.numPages} pages)`, 'success');
+                questionInput.disabled = false;
+                sendBtn.disabled = false;
+                quickQuestions.style.display = 'flex';
+                
+                chatArea.innerHTML = '';
+                addBotMessage(`Great! I've successfully processed your PDF "${file.name}". It has ${pdf.numPages} pages. What would you like to know about it?`);
+                
+            } catch (error) {
+                showStatus('❌ Error processing PDF. Please try again.', 'error');
+                console.error(error);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload & Process';
+            }
+        });
+
+        function analyzePdfStructure() {
+            const text = pdfText.toLowerCase();
+            
+            // Extract different sections
+            const sections = ['abstract', 'introduction', 'methodology', 'results', 'discussion', 'conclusion', 'references'];
+            
+            sections.forEach(section => {
+                const regex = new RegExp(`${section}[\\s\\S]{0,2000}`, 'i');
+                const match = pdfText.match(regex);
+                if (match) {
+                    pdfData.sections[section] = match[0];
+                }
+            });
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            setTimeout(() => {
+                status.textContent = '';
+                status.className = 'status';
+            }, 3000);
+        }
+
+        sendBtn.addEventListener('click', handleQuestion);
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleQuestion();
+        });
+
+        document.querySelectorAll('.quick-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                questionInput.value = btn.dataset.question;
+                handleQuestion();
+            });
+        });
+
+        function handleQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            addUserMessage(question);
+            questionInput.value = '';
+
+            showTypingIndicator();
+
+            setTimeout(() => {
+                removeTypingIndicator();
+                const answer = searchPdfContent(question);
+                addBotMessage(answer);
+            }, 1000);
+        }
+
+        function searchPdfContent(question) {
+            const q = question.toLowerCase();
+
+            // Topic/Title questions
+            if (q.includes('topic') || q.includes('about') || q.includes('title')) {
+                const firstParagraph = pdfText.substring(0, 500);
+                return `Based on the document, the main topic appears to be: ${firstParagraph.substring(0, 300)}...`;
+            }
+
+            // Abstract questions
+            if (q.includes('abstract')) {
+                if (pdfData.sections.abstract) {
+                    return `Here's the abstract:\n\n${pdfData.sections.abstract}`;
+                }
+                const abstractMatch = pdfText.match(/abstract[\s\S]{0,1000}/i);
+                if (abstractMatch) {
+                    return `Here's what I found in the abstract section:\n\n${abstractMatch[0]}`;
+                }
+                return "I couldn't find a clearly marked abstract section in this PDF.";
+            }
+
+            // Introduction questions
+            if (q.includes('introduction') || q.includes('intro')) {
+                if (pdfData.sections.introduction) {
+                    return `Here's the introduction:\n\n${pdfData.sections.introduction}`;
+                }
+                return "I couldn't find a clearly marked introduction section.";
+            }
+
+            // Conclusion questions
+            if (q.includes('conclusion') || q.includes('key points') || q.includes('summary')) {
+                if (pdfData.sections.conclusion) {
+                    return `Here are the key points from the conclusion:\n\n${pdfData.sections.conclusion}`;
+                }
+                const conclusionMatch = pdfText.match(/conclusion[\s\S]{0,1000}/i);
+                if (conclusionMatch) {
+                    return `Here's what I found in the conclusion:\n\n${conclusionMatch[0]}`;
+                }
+                return "I couldn't find a clearly marked conclusion section.";
+            }
+
+            // Findings/Results questions
+            if (q.includes('findings') || q.includes('results')) {
+                if (pdfData.sections.results) {
+                    return `Here are the main findings:\n\n${pdfData.sections.results}`;
+                }
+                return "I couldn't find a clearly marked results section.";
+            }
+
+            // General keyword search
+            const keywords = question.toLowerCase().split(' ').filter(w => w.length > 3);
+            let relevantSentences = [];
+
+            const sentences = pdfText.split(/[.!?]\s+/);
+            sentences.forEach(sentence => {
+                const lowerSentence = sentence.toLowerCase();
+                const matchCount = keywords.filter(kw => lowerSentence.includes(kw)).length;
+                
+                if (matchCount > 0) {
+                    relevantSentences.push({ sentence, matches: matchCount });
+                }
+            });
+
+            relevantSentences.sort((a, b) => b.matches - a.matches);
+            
+            if (relevantSentences.length > 0) {
+                const topSentences = relevantSentences.slice(0, 3).map(s => s.sentence).join('. ');
+                return `Here's what I found related to your question:\n\n${topSentences}.`;
+            }
+
+            return "I couldn't find specific information about that in the PDF. Try asking about the abstract, introduction, conclusion, or main topic.";
+        }
+
+        function addUserMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message user-message';
+            messageDiv.innerHTML = `
+                <div class="message-content">${message}</div>
+                <div class="message-avatar">👤</div>
+            `;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function addBotMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot-message';
+            messageDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">${message}</div>
+            `;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'chat-message bot-message';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            chatArea.appendChild(typingDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typing = document.getElementById('typingIndicator');
+            if (typing) typing.remove();
+        }
+    </script>
+</body>
+</html>
